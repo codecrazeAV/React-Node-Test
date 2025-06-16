@@ -43,21 +43,60 @@ const AddMeeting = (props) => {
         initialValues: initialValues,
         validationSchema: MeetingSchema,
         onSubmit: (values, { resetForm }) => {
-            
+            AddData();
+            resetForm()
         },
     });
     const { errors, touched, values, handleBlur, handleChange, handleSubmit, setFieldValue } = formik
 
     const AddData = async () => {
-
+        try {
+            setIsLoding(true)
+            let response = await postApi('api/meeting/add', values)
+            if (response.status === 200) {
+                toast.success('Meeting created successfully!')
+                formik.resetForm()
+                onClose();
+                if (fetchData) {
+                    fetchData(1)
+                }
+                if (setAction) {
+                    setAction((pre) => !pre)
+                }
+            }
+        } catch (e) {
+            console.log(e);
+            toast.error('Failed to create meeting')
+        } finally {
+            setIsLoding(false)
+        }
     };
 
     const fetchAllData = async () => {
-        
+        try {
+            let result
+            if (values.related === "Contact" && contactdata.length <= 0) {
+                result = await getApi(user.role === 'superAdmin' ? 'api/contact/' : `api/contact/?createBy=${user._id}`)
+                setContactData(result?.data)
+            } else if (values.related === "Lead" && leaddata.length <= 0) {
+                result = await getApi(user.role === 'superAdmin' ? 'api/lead/' : `api/lead/?createBy=${user._id}`);
+                setLeadData(result?.data)
+            }
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     useEffect(() => {
-
+        if (view === true) {
+            if (values.related === "Contact" && contactdata.length <= 0) {
+                setContactData(contactList)
+            } else if (values.related === "Lead" && leaddata.length <= 0) {
+                setLeadData(leadData)
+            }
+        } else {
+            fetchAllData()
+        }
     }, [props.id, values.related])
 
     const extractLabels = (selectedItems) => {
